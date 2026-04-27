@@ -1,13 +1,13 @@
 # License and Asset Boundary
 
-This repository is an unofficial community rebuild and Linux compatibility
-packaging workflow for Codex Desktop.
+This repository is an unofficial Linux rebuild and compatibility packaging
+workflow for Codex Desktop.
 
 ## Repository Code
 
 Code written specifically for this repository's installer, launcher, build glue,
-and documentation is released under Apache-2.0, matching the license used by the
-OpenAI Codex CLI where applicable.
+and documentation is released under Apache-2.0. See `LICENSE` for the full
+license text.
 
 ## Upstream and Generated Assets
 

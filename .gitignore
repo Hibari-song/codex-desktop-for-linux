@@ -32,6 +32,12 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+.envrc
+*.token
+*.secret
+*.key
+secrets/
+credentials/
 
 # Temporary files
 *.tmp

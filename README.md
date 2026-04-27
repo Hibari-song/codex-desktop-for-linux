@@ -104,6 +104,6 @@ See `NOTICE.md` for attribution and trademark notes.
 
 ## License
 
-Original Codex CLI by OpenAI is licensed under Apache-2.0. This repository contains rebuild scripts and compatibility glue; generated upstream app assets are intentionally treated as generated artifacts.
+Original Codex CLI by OpenAI is licensed under Apache-2.0. This repository's own launcher, installer, build glue, and documentation are released under Apache-2.0; generated upstream app assets are intentionally treated as generated artifacts.
 
-See `LICENSE.md` for the repository code license and asset boundary. See `PUBLISHING.md` for the public release checklist.
+See `LICENSE` for the full Apache-2.0 text, `LICENSE.md` for the asset boundary, and `PUBLISHING.md` for the public release checklist.

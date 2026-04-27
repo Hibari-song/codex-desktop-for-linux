@@ -14,6 +14,14 @@ release artifact.
   Windows replacement.
 - Preserve attribution in `NOTICE.md` and the README credits.
 
+## Secret Hygiene
+
+- Do not commit `.env`, local auth files, API keys, access tokens, or personal
+  proxy credentials.
+- Run a secret scan before pushing, including current files and git history.
+- If a real secret ever appears in git history, rotate it immediately; deleting
+  the file in a later commit is not enough.
+
 ## Local Verification
 
 ```bash
