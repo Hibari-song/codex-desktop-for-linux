@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Codex Desktop Rebuild (Unofficial)
+Comment=Unofficial Linux launcher for Codex Desktop Rebuild
+Exec=__BIN_PATH__
+Icon=__ICON_PATH__
+Terminal=false
+Categories=Development;Utility;
+StartupNotify=true

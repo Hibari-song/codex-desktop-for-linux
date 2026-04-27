@@ -1,0 +1,18 @@
+# This project is not intended for npm publication.
+# Keep generated upstream assets and local build state out of accidental packs.
+
+Codex.app/
+node_modules/
+src/
+out/
+dist/
+resources/bin/
+resources/codex
+resources/codex.exe
+scripts/.versions.json
+.claude/
+.vscode/
+.idea/
+*.log
+*.tmp
+*.temp

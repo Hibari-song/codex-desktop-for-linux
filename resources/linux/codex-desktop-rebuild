@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${CODEX_DESKTOP_REBUILD_APP_DIR:-__APP_DIR__}"
+LOG_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/codex-desktop-rebuild"
+LOG_FILE="$LOG_DIR/launcher.log"
+APP_TMP_DIR="${XDG_RUNTIME_DIR:-/tmp}/codex-desktop-rebuild"
+IPC_SOCK="$APP_TMP_DIR/codex-ipc/ipc-$(id -u).sock"
+STATUS_MODE=0
+[[ "${1:-}" == "--status" ]] && STATUS_MODE=1
+
+mkdir -p "$LOG_DIR"
+mkdir -p "$APP_TMP_DIR"
+chmod 700 "$APP_TMP_DIR" 2>/dev/null || true
+export TMPDIR="$APP_TMP_DIR"
+
+if (( STATUS_MODE == 0 )); then
+  exec >>"$LOG_FILE" 2>&1
+fi
+
+echo
+echo "[$(date -Is)] starting codex-desktop-rebuild"
+
+append_no_proxy() {
+  local existing="${NO_PROXY:-${no_proxy:-}}"
+  local additions="localhost,127.0.0.1,::1"
+  if [[ -n "$existing" ]]; then
+    export NO_PROXY="$existing,$additions"
+  else
+    export NO_PROXY="$additions"
+  fi
+  export no_proxy="$NO_PROXY"
+}
+
+proxy_is_listening() {
+  local proxy_url="$1"
+  node -e '
+    try {
+      const url = new URL(process.argv[1]);
+      const port = url.port || (url.protocol === "https:" ? "443" : "80");
+      console.log(`${url.hostname} ${port}`);
+    } catch {
+      process.exit(1);
+    }
+  ' "$proxy_url" | {
+    read -r host port
+    timeout 1 bash -c "</dev/tcp/$host/$port" >/dev/null 2>&1
+  }
+}
+
+detect_vscode_proxy() {
+  local settings="$HOME/.config/Code/User/settings.json"
+  [[ -f "$settings" ]] || return 0
+  node -e '
+    const fs = require("fs");
+    try {
+      const settings = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      const proxy =
+        settings["http.proxy"] ||
+        settings.github?.copilot?.advanced?.["debug.overrideProxyUrl"];
+      if (typeof proxy === "string" && proxy.trim()) console.log(proxy.trim());
+    } catch {}
+  ' "$settings"
+}
+
+configure_proxy() {
+  append_no_proxy
+
+  if [[ -n "${HTTP_PROXY:-${http_proxy:-}}" || -n "${HTTPS_PROXY:-${https_proxy:-}}" ]]; then
+    echo "[launcher] proxy inherited from environment"
+    return 0
+  fi
+
+  local vscode_proxy
+  vscode_proxy="$(detect_vscode_proxy || true)"
+  if [[ -z "$vscode_proxy" ]]; then
+    echo "[launcher] no proxy configured"
+    return 0
+  fi
+
+  if proxy_is_listening "$vscode_proxy"; then
+    export HTTP_PROXY="$vscode_proxy"
+    export HTTPS_PROXY="$vscode_proxy"
+    export http_proxy="$vscode_proxy"
+    export https_proxy="$vscode_proxy"
+    echo "[launcher] proxy enabled from VSCode settings: $vscode_proxy"
+  else
+    echo "[launcher] VSCode proxy configured but not listening, skipped: $vscode_proxy"
+  fi
+}
+
+kill_existing_desktop() {
+  local pids=()
+  while read -r pid; do
+    [[ -n "$pid" && "$pid" != "$$" ]] || continue
+
+    local cmd cwd
+    cmd="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null || true)"
+    cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+
+    if [[ "$cmd" == *"$APP_DIR/node_modules/electron/dist/electron ."* ]] ||
+       [[ "$cmd" == *"$APP_DIR/resources/bin/"*"codex app-server"* ]] ||
+       [[ "$cwd" == "$APP_DIR" && "$cmd" == *"node scripts/start-dev.js"* ]]; then
+      pids+=("$pid")
+    fi
+  done < <(pgrep -u "$(id -u)" -f 'CodexDesktop-Rebuild|node scripts/start-dev\.js|codex app-server|electron' || true)
+
+  if (( ${#pids[@]} == 0 )); then
+    echo "[launcher] no existing desktop processes"
+  else
+    echo "[launcher] stopping existing desktop processes: ${pids[*]}"
+    kill -TERM "${pids[@]}" 2>/dev/null || true
+    sleep 1
+    for pid in "${pids[@]}"; do
+      if kill -0 "$pid" 2>/dev/null; then
+        echo "[launcher] force stopping stubborn process: $pid"
+        kill -KILL "$pid" 2>/dev/null || true
+      fi
+    done
+  fi
+
+  if [[ -S "$IPC_SOCK" ]] && ! ss -lxnp 2>/dev/null | grep -Fq "$IPC_SOCK"; then
+    echo "[launcher] removing stale IPC socket: $IPC_SOCK"
+    rm -f "$IPC_SOCK"
+  fi
+}
+
+if [[ "${1:-}" == "--status" ]]; then
+  echo "[launcher] app dir: $APP_DIR"
+  echo "[launcher] log file: $LOG_FILE"
+  echo "[launcher] tmp dir: $TMPDIR"
+  echo "[launcher] ipc socket: $IPC_SOCK"
+  ps -eo pid,ppid,lstart,cmd | grep -E 'CodexDesktop-Rebuild|node scripts/start-dev|codex app-server' | grep -v grep || true
+  ss -lxnp 2>/dev/null | grep -F "$IPC_SOCK" || true
+  exit 0
+fi
+
+configure_proxy
+kill_existing_desktop
+
+cd "$APP_DIR"
+exec node scripts/start-dev.js
