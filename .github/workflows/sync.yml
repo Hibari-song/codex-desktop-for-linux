@@ -1,8 +1,8 @@
-name: Sync Upstream & Patch
+name: Sync Upstream & Patch Linux
 
 on:
   schedule:
-    - cron: "0 8 * * *" # Daily 08:00 UTC
+    - cron: "0 8 * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -19,132 +19,29 @@ jobs:
     outputs:
       has_update: ${{ steps.detect.outputs.has_update }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
+      - run: npm ci
       - name: Check upstream versions
         id: detect
         run: |
           set +e
-          node scripts/check-update.js --json --force 2>&1
+          node scripts/check-update.js --json >/tmp/codex-version.json 2>/tmp/codex-version.err
           exit_code=$?
           set -e
 
           if [ "${{ inputs.force }}" = "true" ]; then
             echo "has_update=true" >> "$GITHUB_OUTPUT"
           elif [ $exit_code -eq 0 ]; then
-            echo "has_update=true" >> "$GITHUB_OUTPUT"
+            HAS_UPDATE=$(node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/codex-version.json','utf8')); console.log(j.hasUpdates ? 'true' : 'false')")
+            echo "has_update=$HAS_UPDATE" >> "$GITHUB_OUTPUT"
           else
             echo "has_update=false" >> "$GITHUB_OUTPUT"
-            echo "No upstream update detected."
+            cat /tmp/codex-version.err || true
           fi
-
-  # ──────────────────────────────────────────────
-  # Each platform: sync + patch + build in one job
-  # (src/ is gitignored, so it must be generated per-runner)
-  # ──────────────────────────────────────────────
-  build-mac:
-    needs: check
-    if: needs.check.outputs.has_update == 'true'
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64, arm64]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: |
-          npm ci
-          npm install @cometix/codex@latest
-
-      - name: Install tools
-        run: |
-          brew install --quiet sevenzip
-
-      - name: Sync upstream (macOS only)
-        run: node scripts/sync-upstream.js --force --skip-win
-
-      - name: Patch
-        run: node scripts/patch-all.js unix
-
-      - name: Build
-        run: npm run build:mac-${{ matrix.arch }}
-        env:
-          SKIP_SIGN: "true"
-          SKIP_NOTARIZE: "true"
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Codex-macOS-${{ matrix.arch }}
-          path: |
-            out/make/*.dmg
-            out/make/zip/**/*.zip
-          if-no-files-found: error
-
-  build-windows:
-    needs: check
-    if: needs.check.outputs.has_update == 'true'
-    runs-on: windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: |
-          npm ci
-          npm install @cometix/codex@latest
-
-      - name: Install tools
-        run: |
-          choco install 7zip -y
-
-      - name: Add 7zz alias
-        run: |
-          Copy-Item "C:\Program Files\7-Zip\7z.exe" "C:\Program Files\7-Zip\7zz.exe"
-          echo "C:\Program Files\7-Zip" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
-
-      - name: Sync upstream (Windows only)
-        run: node scripts/sync-upstream.js --force --skip-mac
-
-      - name: Patch
-        run: node scripts/patch-all.js win
-
-      - name: Build
-        run: npm run build:win-x64
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Codex-Windows-x64
-          path: |
-            out/make/squirrel.windows/**/*
-            out/make/zip/**/*.zip
-          if-no-files-found: error
 
   build-linux:
     needs: check
@@ -155,80 +52,52 @@ jobs:
       matrix:
         arch: [x64, arm64]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-
-      - name: Install system dependencies
-        run: |
+      - run: |
           sudo apt-get update
           sudo apt-get install -y rpm fakeroot dpkg 7zip
-
-      - name: Install dependencies
-        run: |
+      - run: |
           npm ci
           npm install @cometix/codex@latest
-
-      - name: Sync upstream (macOS ZIP for unix, skip Windows)
+      - name: Sync upstream app assets
         run: node scripts/sync-upstream.js --force --skip-win
-
-      - name: Patch
-        run: node scripts/patch-all.js unix
-
-      - name: Build
-        run: npm run build:linux-${{ matrix.arch }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - run: node scripts/patch-all.js unix
+      - run: npm run build:linux-${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
         with:
-          name: Codex-Linux-${{ matrix.arch }}
+          name: Codex-Desktop-Rebuild-Linux-${{ matrix.arch }}
           path: |
             out/make/deb/**/*.deb
             out/make/rpm/**/*.rpm
             out/make/zip/**/*.zip
           if-no-files-found: error
 
-  # ──────────────────────────────────────────────
-  # Bump version + tag + release
-  # ──────────────────────────────────────────────
   release:
-    needs: [build-mac, build-windows, build-linux]
-    if: always() && needs.check.result == 'success'
+    needs: [check, build-linux]
+    if: needs.check.outputs.has_update == 'true' && needs.build-linux.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: npm ci
-
+      - run: npm ci
       - name: Get upstream version and tag
         id: version
         run: |
           RESULT=$(node scripts/check-update.js --json --force)
-          MAC_VER=$(echo "$RESULT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j.platforms?.macOS?.version||'')}catch{console.log('')}})")
-          WIN_VER=$(echo "$RESULT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j.platforms?.Windows?.version||'')}catch{console.log('')}})")
+          VERSION=$(echo "$RESULT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j.platforms?.macOS?.version||'')}catch{console.log('')}})")
 
-          VERSION="${MAC_VER:-$WIN_VER}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "mac_version=$MAC_VER" >> "$GITHUB_OUTPUT"
-          echo "win_version=$WIN_VER" >> "$GITHUB_OUTPUT"
-
-          if [ -z "$VERSION" ]; then echo "No version detected"; exit 0; fi
+          if [ -z "$VERSION" ]; then echo "No upstream version detected"; exit 0; fi
 
           node -e "
             const fs=require('fs'), p=JSON.parse(fs.readFileSync('package.json','utf8'));
@@ -238,38 +107,31 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git add package.json
           git diff --cached --quiet && echo "No version change" && exit 0
-
-          git commit -m "Bump version to ${VERSION}"
-          git tag -a "v${VERSION}" -m "Codex ${VERSION}"
+          git commit -m "Bump Linux rebuild to upstream ${VERSION}"
+          git tag -a "v${VERSION}" -m "Codex Desktop Rebuild Linux ${VERSION}"
           git push origin HEAD --tags
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts
-
-      - name: Display structure
-        run: ls -lhR artifacts/
-
-      - name: Create Release
+      - run: ls -lhR artifacts/
+      - name: Create draft release
         if: steps.version.outputs.version != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: Codex ${{ steps.version.outputs.version }}
+          name: Codex Desktop Rebuild Linux ${{ steps.version.outputs.version }}
           body: |
-            ## Upstream Versions
-            - **macOS / Linux**: `${{ steps.version.outputs.mac_version || 'N/A' }}`
-            - **Windows**: `${{ steps.version.outputs.win_version || 'N/A' }}`
+            Unofficial Linux desktop rebuild.
+
+            - Upstream desktop source version: `${{ steps.version.outputs.version }}`
+            - Linux-only package artifacts: DEB, RPM, ZIP
+            - Not affiliated with, endorsed by, or sponsored by OpenAI
           files: |
-            artifacts/**/*.dmg
-            artifacts/**/*.zip
             artifacts/**/*.deb
             artifacts/**/*.rpm
-            artifacts/**/*.exe
+            artifacts/**/*.zip
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

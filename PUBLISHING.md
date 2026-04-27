@@ -10,6 +10,8 @@ release artifact.
   the Electron `main` entry points at generated app assets.
 - Treat upstream app extracts and downloaded binaries as generated artifacts.
 - Keep this project clearly described as unofficial and community-maintained.
+- Keep the public positioning Linux-only; do not present this as a macOS or
+  Windows replacement.
 - Preserve attribution in `NOTICE.md` and the README credits.
 
 ## Local Verification
@@ -33,5 +35,6 @@ extension.
 ## Release Notes
 
 - State that the app is unofficial and not affiliated with OpenAI.
+- State that macOS and Windows are intentionally out of scope.
 - Explain the Linux IPC isolation and proxy handling changes.
 - Mention any patch warnings that are non-blocking but still visible in logs.

@@ -294,7 +294,7 @@ async function syncWin(winInfo) {
   // MSIX 结构: app/resources/app.asar 或直接 resources/app.asar
   const asarPath = findFile(extractDir, "app.asar");
   if (!asarPath) {
-    // Diagnostic: list top-level contents (cross-platform)
+    // Diagnostic: list top-level contents from the extracted package
     try {
       const entries = fs.readdirSync(extractDir);
       console.log("  [!] MSIX extract contents:", entries.slice(0, 20).join(", "));

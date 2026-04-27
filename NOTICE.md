@@ -1,11 +1,11 @@
 # Notice
 
-This repository is an unofficial rebuild and Linux-oriented launcher workflow for Codex Desktop.
+This repository is an unofficial Linux rebuild and launcher workflow for Codex Desktop.
 
 ## Credits
 
 - OpenAI: original Codex CLI and Codex Desktop experience.
-- Cometix Space / Haleclipse: cross-platform rebuild work and early packaging path.
+- Cometix Space / Haleclipse: rebuild work and early packaging path.
 - Electron Forge and the upstream Electron ecosystem: packaging and desktop runtime tooling.
 
 ## Trademark Note

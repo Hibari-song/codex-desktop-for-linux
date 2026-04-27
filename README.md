@@ -1,16 +1,16 @@
-# Codex Desktop Rebuild
+# Codex Desktop Rebuild for Linux
 
-Unofficial cross-platform Electron rebuild for Codex Desktop, with a Linux-first launcher that can coexist with the VSCode Codex extension.
+Unofficial Linux desktop rebuild for Codex, focused on giving Linux users a desktop experience similar to the official macOS and Windows apps.
 
-> This is not an official OpenAI release. It is a community rebuild/packaging workflow for experimentation and compatibility testing.
+> This is not an official OpenAI release. It is a community Linux packaging workflow for experimentation and compatibility testing.
 
-## Supported Platforms
+## Scope
 
 | Platform | Architecture | Status |
 |----------|--------------|--------|
-| macOS    | x64, arm64   | ✅     |
-| Windows  | x64          | ✅     |
-| Linux    | x64, arm64   | ✅     |
+| Linux    | x64, arm64   | Target |
+
+macOS and Windows are intentionally out of scope for this repository because they already have official desktop app paths. This project only tries to close the Linux gap.
 
 ## Build
 
@@ -22,14 +22,11 @@ npm install
 npm run build
 
 # Build for specific platform
-npm run build:mac-x64
-npm run build:mac-arm64
-npm run build:win-x64
 npm run build:linux-x64
 npm run build:linux-arm64
 
-# Build all platforms
-npm run build:all
+# Build both Linux architectures
+npm run build:linux
 ```
 
 ## Linux Quick Install
@@ -76,7 +73,7 @@ npm run dev
 │   ├── .vite/build/     # Main process (Electron)
 │   └── webview/         # Renderer (Frontend)
 ├── resources/
-│   ├── electron.icns    # App icon
+│   ├── electron.png     # Linux app icon
 │   ├── linux/           # Linux launcher and desktop-entry templates
 │   └── notification.wav # Sound
 ├── scripts/
@@ -92,15 +89,15 @@ npm run dev
 GitHub Actions includes:
 
 - `Validate` on push or pull request to `main`.
-- `Build & Release (Manual)` for manually packaging macOS, Windows, or Linux artifacts.
-- `Sync Upstream & Patch` for scheduled or manual upstream rebuild checks.
+- `Build Linux (Manual)` for manually packaging Linux artifacts.
+- `Sync Upstream & Patch Linux` for scheduled or manual Linux rebuild checks.
 
 ## Credits
 
 Respect and thanks to the original authors and maintainers:
 
 - [OpenAI Codex](https://github.com/openai/codex) — original Codex CLI and desktop experience.
-- [Cometix Space / Haleclipse](https://github.com/Haleclipse) — cross-platform rebuild work and early packaging path.
+- [Cometix Space / Haleclipse](https://github.com/Haleclipse) — rebuild work and early packaging path.
 - [Electron Forge](https://www.electronforge.io/) — build and packaging toolchain.
 
 See `NOTICE.md` for attribution and trademark notes.

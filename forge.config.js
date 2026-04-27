@@ -10,9 +10,9 @@ const {
 
 module.exports = {
   packagerConfig: {
-    name: "Codex",
-    executableName: "Codex",
-    appBundleId: "com.openai.codex",
+    name: "Codex Desktop Rebuild",
+    executableName: "codex-desktop-rebuild",
+    appBundleId: "community.codex.desktop.rebuild",
     icon: "./resources/electron",
     asar: {
       unpack: "{**/*.node,**/node-pty/build/Release/spawn-helper,**/node-pty/prebuilds/*/spawn-helper}",
@@ -45,68 +45,20 @@ module.exports = {
 
       return true;
     },
-    // macOS 签名配置
-    osxSign: process.env.SKIP_SIGN
-      ? undefined
-      : {
-          identity: process.env.APPLE_IDENTITY,
-          identityValidation: false,
-        },
-    osxNotarize: process.env.SKIP_NOTARIZE
-      ? undefined
-      : {
-          appleId: process.env.APPLE_ID,
-          appleIdPassword: process.env.APPLE_PASSWORD,
-          teamId: process.env.APPLE_TEAM_ID,
-        },
-    // Windows 元数据
-    win32metadata: {
-      CompanyName: "OpenAI",
-      ProductName: "Codex",
-    },
   },
   rebuildConfig: {},
   makers: [
-    // macOS DMG
-    {
-      name: "@electron-forge/maker-dmg",
-      config: {
-        format: "ULFO",
-        icon: "./resources/electron.icns",
-      },
-    },
-    // macOS ZIP
-    {
-      name: "@electron-forge/maker-zip",
-      platforms: ["darwin"],
-    },
-    // Windows Squirrel
-    {
-      name: "@electron-forge/maker-squirrel",
-      config: {
-        name: "Codex",
-        authors: "OpenAI, Cometix Space",
-        description: "Codex Desktop App",
-        setupIcon: "./resources/electron.ico",
-        iconUrl: "https://raw.githubusercontent.com/Haleclipse/CodexDesktop-Rebuild/master/resources/electron.ico",
-      },
-    },
-    // Windows ZIP
-    {
-      name: "@electron-forge/maker-zip",
-      platforms: ["win32"],
-    },
     // Linux DEB
     {
       name: "@electron-forge/maker-deb",
       config: {
         options: {
-          name: "codex",
-          productName: "Codex",
+          name: "codex-desktop-rebuild",
+          productName: "Codex Desktop Rebuild",
           genericName: "AI Coding Assistant",
           categories: ["Development", "Utility"],
-          bin: "Codex",
-          maintainer: "Cometix Space",
+          bin: "codex-desktop-rebuild",
+          maintainer: "Codex Desktop Rebuild contributors",
           homepage: "https://github.com/Haleclipse/CodexDesktop-Rebuild",
           icon: "./resources/electron.png",
         },
@@ -117,11 +69,11 @@ module.exports = {
       name: "@electron-forge/maker-rpm",
       config: {
         options: {
-          name: "codex",
-          productName: "Codex",
+          name: "codex-desktop-rebuild",
+          productName: "Codex Desktop Rebuild",
           genericName: "AI Coding Assistant",
           categories: ["Development", "Utility"],
-          bin: "Codex",
+          bin: "codex-desktop-rebuild",
           license: "Apache-2.0",
           homepage: "https://github.com/Haleclipse/CodexDesktop-Rebuild",
           icon: "./resources/electron.png",
