@@ -27,9 +27,9 @@ function parseArgs(argv) {
     } else if (arg === "--uninstall") {
       options.uninstall = true;
     } else if (arg === "--bin-dir") {
-      options.binDir = path.resolve(argv[++index]);
+      options.binDir = path.resolve(readValueArg(argv, ++index, arg));
     } else if (arg === "--desktop-dir") {
-      options.desktopDir = path.resolve(argv[++index]);
+      options.desktopDir = path.resolve(readValueArg(argv, ++index, arg));
     } else if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
@@ -39,6 +39,14 @@ function parseArgs(argv) {
   }
 
   return options;
+}
+
+function readValueArg(argv, index, flag) {
+  const value = argv[index];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`${flag} requires a path value`);
+  }
+  return value;
 }
 
 function printHelp() {
@@ -65,6 +73,10 @@ function renderTemplate(filePath, replacements) {
     content = content.replaceAll(key, value);
   }
   return content;
+}
+
+function escapeDesktopValue(value) {
+  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 }
 
 function writeFile(filePath, content, mode, options) {
@@ -103,8 +115,8 @@ function install(options) {
 
   const replacements = {
     __APP_DIR__: APP_DIR,
-    __BIN_PATH__: binPath,
-    __ICON_PATH__: ICON_PATH,
+    __BIN_PATH__: escapeDesktopValue(binPath),
+    __ICON_PATH__: escapeDesktopValue(ICON_PATH),
   };
 
   writeFile(binPath, renderTemplate(LAUNCHER_TEMPLATE, replacements), 0o755, options);

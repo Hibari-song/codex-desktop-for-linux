@@ -15,12 +15,7 @@ release artifact.
 ## Local Verification
 
 ```bash
-node -c scripts/install-linux.js
-node -c scripts/codex-binary.js
-node -c scripts/start-dev.js
-node -e "require('./forge.config.js')"
-bash -n resources/linux/codex-desktop-rebuild
-npm run install:linux -- --dry-run
+npm run validate:release
 node scripts/patch-all.js --check
 ```
 

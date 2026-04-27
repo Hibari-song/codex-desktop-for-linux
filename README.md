@@ -89,9 +89,11 @@ npm run dev
 
 ## CI/CD
 
-GitHub Actions automatically builds on:
-- Push to `master`
-- Tag `v*` → Creates draft release
+GitHub Actions includes:
+
+- `Validate` on push or pull request to `main`.
+- `Build & Release (Manual)` for manually packaging macOS, Windows, or Linux artifacts.
+- `Sync Upstream & Patch` for scheduled or manual upstream rebuild checks.
 
 ## Credits
 

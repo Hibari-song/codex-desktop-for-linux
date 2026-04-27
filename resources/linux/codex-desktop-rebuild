@@ -44,7 +44,7 @@ proxy_is_listening() {
     }
   ' "$proxy_url" | {
     read -r host port
-    timeout 1 bash -c "</dev/tcp/$host/$port" >/dev/null 2>&1
+    HOST="$host" PORT="$port" timeout 1 bash -c '</dev/tcp/$HOST/$PORT' >/dev/null 2>&1
   }
 }
 
